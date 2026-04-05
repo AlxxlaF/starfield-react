@@ -113,8 +113,18 @@ export const LANGUAGES = [
 
 const LangContext = createContext();
 
+const LANG_KEY = "kintana_lang";
+
 export function LangProvider({ children }) {
-  const [lang, setLang] = useState("fr");
+  const [lang, setLangState] = useState(() => {
+    try { return localStorage.getItem(LANG_KEY) || "fr"; } catch { return "fr"; }
+  });
+
+  const setLang = (code) => {
+    setLangState(code);
+    try { localStorage.setItem(LANG_KEY, code); } catch {}
+  };
+
   const t = (key) => translations[lang]?.[key] || translations.en[key] || key;
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>

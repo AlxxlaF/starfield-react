@@ -26,14 +26,28 @@ function formatTime(sec) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function MusicPlayer() {
+export default function MusicPlayer({ isOpen, onToggle }) {
   const [playing, setPlaying] = useState(false);
   const [trackIdx, setTrackIdx] = useState(0);
   const [volume, setVolume] = useState(0.4);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [expanded, setExpanded] = useState(false);
   const [shuffle, setShuffle] = useState(false);
+
+  // Smooth fade in/out
+  const [panelVisible, setPanelVisible] = useState(false);
+  const [panelOpacity, setPanelOpacity] = useState(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPanelVisible(true);
+      requestAnimationFrame(() => setPanelOpacity(1));
+    } else {
+      setPanelOpacity(0);
+      const timer = setTimeout(() => setPanelVisible(false), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
   const [crossfade, setCrossfade] = useState(true);
   const [crossfadeDuration, setCrossfadeDuration] = useState(CROSSFADE_DEFAULT);
   const [repeat, setRepeat] = useState(false);
@@ -234,7 +248,7 @@ export default function MusicPlayer() {
       <audio ref={audioNextRef} preload="auto" />
 
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
         style={{
           position: "fixed", top: 56, right: 16, zIndex: 1001,
           width: 38, height: 38,
@@ -243,19 +257,20 @@ export default function MusicPlayer() {
           border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10,
           color: "#fff", padding: 0, cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          opacity: expanded ? 1 : btnOpacity, transition: "opacity 0.5s ease",
+          opacity: isOpen ? 1 : btnOpacity, transition: "opacity 0.5s ease",
         }}
       >
-        {expanded ? <X size={16} /> : <Music size={16} />}
+        {isOpen ? <X size={16} /> : <Music size={16} />}
       </button>
 
-      {expanded && (
-        <div style={{
+      {panelVisible && (
+        <div onClick={(e) => e.stopPropagation()} style={{
           position: "fixed", top: 96, right: 16, zIndex: 1000, width: 320,
           background: "rgba(10, 10, 30, 0.65)",
           backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
           border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
           padding: "20px 22px", color: "#fff",
+          opacity: panelOpacity, transition: "opacity 0.4s ease",
         }}>
 
           {/* Now playing */}

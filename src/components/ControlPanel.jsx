@@ -28,23 +28,25 @@ function getDefaults() {
 
 export const DEFAULT_SETTINGS = getDefaults();
 
-export default function ControlPanel({ settings, onChange }) {
+export default function ControlPanel({ settings, onChange, isOpen, onToggle }) {
   const { t, lang, setLang } = useLang();
+
+  // Smooth fade in/out — keep mounted during transition
   const [visible, setVisible] = useState(false);
   const [opacity, setOpacity] = useState(0);
-  const timerRef = useRef(null);
-  const panelRef = useRef(null);
 
-  const toggle = () => {
-    if (visible) {
-      setOpacity(0);
-      setTimeout(() => setVisible(false), 500);
-    } else {
+  useEffect(() => {
+    if (isOpen) {
       setVisible(true);
-      setOpacity(1);
+      requestAnimationFrame(() => setOpacity(1));
+    } else {
+      setOpacity(0);
+      const timer = setTimeout(() => setVisible(false), 400);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [isOpen]);
 
+  // Button auto-fade on mouse inactivity
   const [btnOpacity, setBtnOpacity] = useState(1);
   const btnTimerRef = useRef(null);
 
@@ -64,8 +66,9 @@ export default function ControlPanel({ settings, onChange }) {
 
   return (
     <>
+      {/* Toggle button */}
       <button
-        onClick={toggle}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
         style={{
           position: "fixed", top: 16, right: 16, zIndex: 1001,
           width: 38, height: 38,
@@ -74,16 +77,17 @@ export default function ControlPanel({ settings, onChange }) {
           border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10,
           color: "#fff", padding: 0, cursor: "pointer", fontSize: 14,
           display: "flex", alignItems: "center", justifyContent: "center",
-          opacity: visible ? 1 : btnOpacity, transition: "opacity 0.5s ease",
+          opacity: isOpen ? 1 : btnOpacity, transition: "opacity 0.5s ease",
           pointerEvents: "auto",
         }}
       >
-        {visible ? "\u2715" : "\u2699"}
+        {isOpen ? "\u2715" : "\u2699"}
       </button>
 
+      {/* Panel */}
       {visible && (
         <div
-          ref={panelRef}
+          onClick={(e) => e.stopPropagation()}
           style={{
             position: "fixed", top: 56, right: 16, zIndex: 1000, width: 260,
             maxHeight: "calc(100vh - 80px)", overflowY: "auto",
@@ -91,7 +95,8 @@ export default function ControlPanel({ settings, onChange }) {
             backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
             border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14,
             padding: "16px 18px", color: "#fff", fontSize: 13,
-            opacity, transition: "opacity 0.5s ease", scrollbarWidth: "none",
+            scrollbarWidth: "none",
+            opacity, transition: "opacity 0.4s ease",
           }}
         >
           {/* Language selector */}
@@ -156,22 +161,6 @@ export default function ControlPanel({ settings, onChange }) {
               ))}
             </div>
           ))}
-
-          {/* Fullscreen */}
-          <button
-            onClick={() => {
-              if (document.fullscreenElement) document.exitFullscreen();
-              else document.documentElement.requestFullscreen().catch(() => {});
-            }}
-            style={{
-              width: "100%", padding: "8px 0", marginBottom: 8,
-              background: "rgba(140, 180, 255, 0.1)",
-              border: "1px solid rgba(140, 180, 255, 0.2)", borderRadius: 8,
-              color: "rgba(140, 180, 255, 0.8)", cursor: "pointer", fontSize: 12,
-            }}
-          >
-            {t("fullscreen")}
-          </button>
 
           {/* Reset */}
           <button
